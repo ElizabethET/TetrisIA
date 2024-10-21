@@ -1,3 +1,4 @@
+#Se importan las bibliotecas 
 import pygame
 import random
 
@@ -5,23 +6,24 @@ import random
 pygame.init()
 
 #dimenciones de pantalla
-SCREEN_WIDTH = 300
-SCREEN_HEIGHT = 600
+ANCHO = 300
+ALTURA = 600
 CELL_SIZE = 30
 
-#los colores
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GRAY = (128, 128, 128)
-BLUE = (0, 0, 255)
-GREEN = (0, 255, 0)
+#los colores que se vana  usar
+BLANCO = (255, 255, 255)
+NEGRO = (0, 0, 0)
+GRIS = (128, 128, 128)
+AZUL = (0, 0, 255)
+VERDE = (0, 255, 0)
 
-#dimensiones del tablero
-COLS = SCREEN_WIDTH // CELL_SIZE
-ROWS = SCREEN_HEIGHT // CELL_SIZE
+#el numero de columnas y filas en el tablero 
+#dividiendo el ancho y alto de la pantalla por el tamano de las celdas
+COLS = ANCHO // CELL_SIZE
+ROWS = ALTURA // CELL_SIZE
 
-#Las Piezas del Tetris
-shapes = [
+#forma de las piezas del juego/tetrimonios
+figuras = [
     [[1, 1, 1], [0, 1, 0]],  # T
     [[1, 1], [1, 1]],        # O
     [[1, 1, 1, 1]],          # I
@@ -32,94 +34,96 @@ shapes = [
 ]
 
 #para que tome una pieza en aleatorio
-def new_piece():
-    return random.choice(shapes)
+def nuevaPieza():
+    return random.choice(figuras)
 
 #función para rotar la pieza
-def rotate_clockwise(shape):
-    return [list(row) for row in zip(*shape[::-1])]
+def girarDerecha(figura):
+    return [list(row) for row in zip(*figura[::-1])]
 
-# Clase para el tablero
-class Board:
-    def __init__(self):
-        self.grid = [[0 for _ in range(COLS)] for _ in range(ROWS)]
-        self.piece = new_piece()
-        self.piece_x = COLS // 2 - len(self.piece[0]) // 2
-        self.piece_y = 0
-        self.score = 0
+# clase para el tablero
+class Tablero:
+    def __init__(self): #se inicia el tablero
+        self.cuadricula = [[0 for _ in range(COLS)] for _ in range(ROWS)]
+        self.pieza = nuevaPieza()
+        self.pieza_x = COLS // 2 - len(self.pieza[0]) // 2
+        self.pieza_y = 0
+        self.puntos = 0
         self.game_over = False
-        self.ai_active = False
+        self.ia_active = False
 
-    def draw_grid(self, screen):
+    def dibuja_cuadricula(self, screen): #se crea la cuadricula
         for y in range(ROWS):
             for x in range(COLS):
                 rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                pygame.draw.rect(screen, GRAY, rect, 1)
+                pygame.draw.rect(screen, GRIS, rect, 1)
     
-    def draw_board(self, screen):
-        for y, row in enumerate(self.grid):
+    def dibuja_Tablero(self, screen): #las celdas ocupadas estaran de Azul
+        for y, row in enumerate(self.cuadricula):
             for x, cell in enumerate(row):
                 if cell:
                     rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                    pygame.draw.rect(screen, BLUE, rect)
+                    pygame.draw.rect(screen, AZUL, rect)
     
-    def draw_piece(self, screen):
-        for y, row in enumerate(self.piece):
+    def dibuja_pieza(self, screen): #la pieza actual
+        for y, row in enumerate(self.pieza):
             for x, cell in enumerate(row):
                 if cell:
-                    rect = pygame.Rect((self.piece_x + x) * CELL_SIZE, (self.piece_y + y) * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                    pygame.draw.rect(screen, BLUE, rect)
+                    rect = pygame.Rect((self.pieza_x + x) * CELL_SIZE, (self.pieza_y + y) * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                    pygame.draw.rect(screen, AZUL, rect)
 
-    def move_piece(self, dx, dy):
-        if not self.collision(dx, dy):
-            self.piece_x += dx
-            self.piece_y += dy
+    def mover_pieza(self, dx, dy): #puedes moverr la pieza de izquierda a derecha con dx o dy
+        if not self.colision(dx, dy):
+            self.pieza_x += dx
+            self.pieza_y += dy
         else:
-            # Aquí podrías manejar la colisión si es necesario
-            if dy > 0:  # Solo si está moviendo hacia abajo
-                self.merge_piece()  # Combina la pieza con el tablero
-                self.piece = new_piece()
-                self.piece_x = COLS // 2 - len(self.piece[0]) // 2
-                self.piece_y = 0
-                if self.collision(0, 0):
+            #manejar la colisión si es necesario
+            if dy > 0:  # si está moviendo hacia abajo
+                self.unir_pieza()  #combina la pieza con el tablero
+                self.pieza = nuevaPieza()
+                self.pieza_x = COLS // 2 - len(self.pieza[0]) // 2
+                self.pieza_y = 0
+                if self.colision(0, 0):
                     self.game_over = True
 
-    def collision(self, dx, dy, rotated_piece=None):
-        piece = rotated_piece if rotated_piece else self.piece
-        for y, row in enumerate(piece):
+    def colision(self, dx, dy, rotard_pieza=None): #con la colision se verifica si la nueva pieza choca con el fondo del tablero o con otra pieza
+        pieza = rotard_pieza if rotard_pieza else self.pieza
+        for y, row in enumerate(pieza):
             for x, cell in enumerate(row):
                 if cell:
-                    new_x = self.piece_x + x + dx
-                    new_y = self.piece_y + y + dy
-                    if new_x < 0 or new_x >= COLS or new_y >= ROWS or self.grid[new_y][new_x]:
+                    new_x = self.pieza_x + x + dx
+                    new_y = self.pieza_y + y + dy
+                    if new_x < 0 or new_x >= COLS or new_y >= ROWS or self.cuadricula[new_y][new_x]:
                         return True
         return False
     
-    def rotate_piece(self):
-        rotated_piece = rotate_clockwise(self.piece)
-        if not self.collision(0, 0, rotated_piece):
-            self.piece = rotated_piece
+    def rotar_pieza(self): #se puede rotar la pieza actual si aun no ha colisionado con nada
+        rotard_pieza = girarDerecha(self.pieza)
+        if not self.colision(0, 0, rotard_pieza):
+            self.pieza = rotard_pieza
     
-    def merge_piece(self):
-        for y, row in enumerate(self.piece):
+    def unir_pieza(self): #se unen las piezas con el tablero o cuando chocan entre si
+        for y, row in enumerate(self.pieza):
             for x, cell in enumerate(row):
                 if cell:
-                    self.grid[self.piece_y + y][self.piece_x + x] = 1
-        self.clear_lines()
+                    self.cuadricula[self.pieza_y + y][self.pieza_x + x] = 1
+        self.lineaCompleta()
     
-    def clear_lines(self):
-        new_grid = [row for row in self.grid if not all(row)]
-        lines_cleared = ROWS - len(new_grid)
-        self.score += lines_cleared
-        self.grid = [[0 for _ in range(COLS)] for _ in range(lines_cleared)] + new_grid
+    def lineaCompleta(self): #se eliminan las lineas horizontales cuando se llenan todos los campos y se
+        new_cuadricula = [row for row in self.cuadricula if not all(row)]
+        lines_cleared = ROWS - len(new_cuadricula)
+        self.puntos += lines_cleared
+        self.cuadricula = [[0 for _ in range(COLS)] for _ in range(lines_cleared)] + new_cuadricula
 
     def reset(self):
         self.__init__()
 
+
+
     # Activar IA
     def activate_ai(self):
-        self.ai_active = not self.ai_active
-        if self.ai_active:
+        self.ia_active = not self.ia_active
+        if self.ia_active:
             # Reiniciar la mejor posición cuando se activa la IA
             if hasattr(self, 'best_x'):
                 del self.best_x
@@ -127,166 +131,168 @@ class Board:
                 del self.best_rotation
 
 
-    def ai_move_step(self):
-        if not self.ai_active:  # Solo permitir movimiento si la IA está activa
+    #calcula los movimientos de la IA
+    def movimientos_ia(self):
+        if not self.ia_active:  # Solo permitir movimiento si la IA está activa
             return
 
-        best_x = self.piece_x
-        best_y = self.piece_y
-        best_rotation = self.piece
+        best_x = self.pieza_x
+        best_y = self.pieza_y
+        best_rotation = self.pieza
 
-        # Probar cada rotación posible
+        #probar cada rotación posible
         for rotation in range(4):
-            rotated_piece = rotate_clockwise(self.piece)  # Obtener la rotación
-            self.piece = rotated_piece  # Usar la pieza rotada
+            rotard_pieza = girarDerecha(self.pieza)  # Obtener la rotación
+            self.pieza = rotard_pieza  # Usar la pieza rotada
 
             # Probar cada columna en el tablero
             for x in range(COLS):
-                self.piece_x = x
-                self.piece_y = 0  # Reiniciar la posición Y para empezar desde arriba
+                self.pieza_x = x
+                self.pieza_y = 0  #reiniciar la posición Y para empezar desde arriba
 
-                # Mover la pieza hacia abajo hasta que colisione
-                while not self.collision(0, 1):  # Mover hacia abajo
-                    self.piece_y += 1
+                # mover la pieza hacia abajo hasta que colisione
+                while not self.colision(0, 1):  # mover hacia abajo
+                    self.pieza_y += 1
 
-                # Ajustar la posición a la fila más baja donde puede encajar
-                if self.piece_y > 0:  # Asegurarse de que la pieza se haya movido al menos una fila
-                    self.piece_y -= 1  # Llevarla a la fila justo por encima de la última colisión
+                # Ajustar la posición a la fila 
+                if self.pieza_y > 0:  # asegurarse de que la pieza se haya movido al menos una fila
+                    self.pieza_y -= 1  # llevarla a la fila justo por encima de la última colisión
 
-                # Si esta posición es mejor (más baja) que la mejor encontrada, guardarla
-                if self.piece_y > best_y:
-                    best_y = self.piece_y
+                #busca la posicion más baja donde puede encajar para lograr llenar una linea en horizontal
+                if self.pieza_y > best_y:
+                    best_y = self.pieza_y
                     best_x = x
-                    best_rotation = self.piece.copy()
+                    best_rotation = self.pieza.copy()
 
-            # Restaurar la pieza original para la siguiente rotación
-            self.piece = rotated_piece
+            #la siguiente rotación
+            self.pieza = rotard_pieza
 
-        # Establecer la mejor posición encontrada
-        self.piece = best_rotation
-        self.piece_x = best_x
-        self.piece_y = best_y
+        #la mejor posición encontrada
+        self.pieza = best_rotation
+        self.pieza_x = best_x
+        self.pieza_y = best_y
 
-        # Mover la pieza a la fila más baja posible en la columna elegida
-        while not self.collision(0, 1):  # Comprobar si se puede mover hacia abajo
-            self.move_piece(0, 1)
+        # mover la pieza a la fila más baja posible en la columna elegida
+        while not self.colision(0, 1):  #comprobar si se puede mover hacia abajo
+            self.mover_pieza(0, 1)
 
-        # Fusionar la pieza si no puede bajar
-        self.merge_piece()
-        self.piece = new_piece()  # Generar nueva pieza
-        self.piece_x = COLS // 2 - len(self.piece[0]) // 2
-        self.piece_y = 0
-        if self.collision(0, 0):
-            self.game_over = True  # Fin del juego si la nueva pieza no encaja
+        #unir piezas al chocar
+        self.unir_pieza()
+        self.pieza = nuevaPieza()  #se generara una nueva pieza
+        self.pieza_x = COLS // 2 - len(self.pieza[0]) // 2
+        self.pieza_y = 0
+        if self.colision(0, 0):
+            self.game_over = True  #fin del juego si la nueva pieza no encaja mas en el tablero
 
-    def evaluate_position(self):
-                                    score = 0
-                                    # Evaluar cuántas líneas se pueden completar
-                                    for y in range(ROWS):
-                                        if all(self.grid[y][x] != 0 for x in range(COLS)):  # Comprobar si la línea está llena
-                                            score += 100  # Aumentar puntuación si se puede completar una línea
+    def calcular_posicion(self):
+            puntos = 0
+            #ver cuantas lineas se pueden completar
+            for y in range(ROWS):
+                if all(self.cuadricula[y][x] != 0 for x in range(COLS)):  #ver si la línea está llena
+                    puntos += 100  #puntos si se completa la linea
 
-                                    # Penalizar líneas vacías más arriba para que las piezas se acumulen en la parte inferior
-                                    for y in range(ROWS - 1, -1, -1):
-                                        if any(self.grid[y][x] == 0 for x in range(COLS)):
-                                            score -= 10  # Penalizar por líneas vacías hacia arriba
+            #que las piezas se acumulen en la parte inferior
+            for y in range(ROWS - 1, -1, -1):
+                if any(self.cuadricula[y][x] == 0 for x in range(COLS)):
+                    puntos -= 10  #penalizar por líneas vacías hacia arriba
 
-                                    # Añadir lógica para colocar las piezas más cerca unas de otras
-                                    for y in range(ROWS):
-                                        for x in range(COLS):
-                                            if self.grid[y][x] == 1:  # Si hay una pieza en esta celda
-                                                if x > 0 and self.grid[y][x - 1] == 0:  # Verificar si hay espacio a la izquierda
-                                                    score += 5  # Bonificación por espacios vacíos a la izquierda
-                                                if x < COLS - 1 and self.grid[y][x + 1] == 0:  # Verificar si hay espacio a la derecha
-                                                    score += 5  # Bonificación por espacios vacíos a la derecha
+            # anadir piezas cerca unas de otras
+            for y in range(ROWS):
+                for x in range(COLS):
+                    if self.cuadricula[y][x] == 1:  #ver si hay una pieza en esta celda
+                        if x > 0 and self.cuadricula[y][x - 1] == 0:  # Versi hay espacio a la izquierda
+                            puntos += 5  #se van acumulando puntos
+                        if x < COLS - 1 and self.cuadricula[y][x + 1] == 0:  # Versi hay espacio a la derecha
+                            puntos += 5  # ve acumulan puntos tambien
 
-                                    return score  # Devuelve la puntuación total
+            return puntos  #puntuacion final
+
+#VISIBILIDAD DEL JUEGO
 
 # Crear la pantalla
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+screen = pygame.display.set_mode((ANCHO, ALTURA))
 pygame.display.set_caption("Tetris")
 
-# Definir el reloj
+#definir el reloj
 clock = pygame.time.Clock()
 
-# Crear el tablero
-board = Board()
+#se crea el tablero
+Tablero = Tablero()
 
-# Fuente para el marcador
+#letra del marcador
 font = pygame.font.SysFont('Arial', 20)
 
-# Variables para controlar la velocidad de caída
+#la velocidad de caída
 fall_time = 0
-fall_speed = 500  # 500 milisegundos (medio segundo) entre cada caída
+fall_speed = 500  # 500 milisegundos = medio segundo entre cada caída
 
-# Bucle principal del juego
+#Bucle principal del juego
 running = True
 while running:
-    screen.fill(BLACK)
+    screen.fill(NEGRO) #fondo negro
     
-    # Incrementar el tiempo de caída
+    #incrementar el tiempo de caída
     fall_time += clock.get_rawtime()
     
-    # Actualizar el reloj
     clock.tick()
 
-    # Mover la pieza hacia abajo si el tiempo de caída ha superado el límite
+    # moverr la pieza hacia abajo por si sola
     if fall_time >= fall_speed:
-        # Si la IA está activa, mueve la pieza usando el método AI
-        if board.ai_active:
-            board.ai_move_step()
+        #si la IA está activa se mueve la pieza usando el método ia
+        if Tablero.ia_active:
+            Tablero.movimientos_ia()
         else:
-            # Intentar mover la pieza hacia abajo
-            if not board.collision(0, 1):  # Comprobar si puede bajar
-                board.move_piece(0, 1)  # Mover hacia abajo
+            # Intentar moverr la pieza hacia abajo
+            if not Tablero.colision(0, 1):  # Comprobar si puede bajar
+                Tablero.mover_pieza(0, 1)  # mover hacia abajo
             else:
-                board.merge_piece()  # Si no puede bajar, combinar con el tablero
+                Tablero.unir_pieza()  
 
         fall_time = 0
 
-    # Dibujar la cuadrícula, el tablero y la pieza
-    board.draw_grid(screen)
-    board.draw_board(screen)
-    board.draw_piece(screen)
+    #dibujar la cuadricula, el tablero y la pieza
+    Tablero.dibuja_cuadricula(screen)
+    Tablero.dibuja_Tablero(screen)
+    Tablero.dibuja_pieza(screen)
     
-    # Dibujar el marcador
-    score_text = font.render(f"Score: {board.score}", True, WHITE)
-    screen.blit(score_text, (10, 10))
+    #marcador
+    puntos_text = font.render(f"puntos: {Tablero.puntos}", True, BLANCO)
+    screen.blit(puntos_text, (10, 10))
 
-    # Botón de reiniciar
-    restart_button = pygame.Rect(SCREEN_WIDTH - 80, 10, 70, 30)
-    pygame.draw.rect(screen, WHITE, restart_button)
-    restart_text = font.render("Restart", True, BLACK)
-    screen.blit(restart_text, (SCREEN_WIDTH - 75, 15))
+    #botón reiniciar
+    restart_button = pygame.Rect(ANCHO - 80, 10, 70, 30)
+    pygame.draw.rect(screen, BLANCO, restart_button)
+    restart_text = font.render("Restart", True, NEGRO)
+    screen.blit(restart_text, (ANCHO - 75, 15))
     
-    # Botón de activar IA
-    ai_button = pygame.Rect(SCREEN_WIDTH - 80, 50, 70, 30)
-    pygame.draw.rect(screen, GREEN, ai_button)
-    ai_text = font.render("IA", True, BLACK)
-    screen.blit(ai_text, (SCREEN_WIDTH - 60, 55))
+    # Botón IA
+    ia_button = pygame.Rect(ANCHO - 80, 50, 70, 30)
+    pygame.draw.rect(screen, VERDE, ia_button)
+    ia_text = font.render("IA", True, NEGRO)
+    screen.blit(ia_text, (ANCHO - 60, 55))
 
     pygame.display.update()
     
-    # Procesar eventos
+    #los eventos con las teclas
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN: #con el mouse se puede activar la ia o resetear
             if restart_button.collidepoint(event.pos):
-                board.reset()
-            if ai_button.collidepoint(event.pos):
-                board.activate_ai()
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT and not board.ai_active:
-                board.move_piece(-1, 0)
-            if event.key == pygame.K_RIGHT and not board.ai_active:
-                board.move_piece(1, 0)
-            if event.key == pygame.K_DOWN and not board.ai_active:
-                board.move_piece(0, 1)  # Movimiento hacia abajo manual
-            if event.key == pygame.K_UP and not board.ai_active:
-                board.rotate_piece()
+                Tablero.reset()
+            if ia_button.collidepoint(event.pos):
+                Tablero.activate_ai()
+        if event.type == pygame.KEYDOWN: #presionar una tecla
+            if event.key == pygame.K_LEFT and not Tablero.ia_active: #hacia izquierda
+                Tablero.mover_pieza(-1, 0)
+            if event.key == pygame.K_RIGHT and not Tablero.ia_active: #hacia derecha
+                Tablero.mover_pieza(1, 0)
+            if event.key == pygame.K_DOWN and not Tablero.ia_active: #hacia abajo baja mas rapido la pieza
+                Tablero.mover_pieza(0, 1)  # Movimiento hacia abajo manual
+            if event.key == pygame.K_UP and not Tablero.ia_active: #hacia arriba se rota la pieza
+                Tablero.rotar_pieza()
 
-    if board.game_over:
+    if Tablero.game_over:
         running = False
 
 pygame.quit()
